@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns:context="http://www.springframework.org/schema/context"
-    xmlns:aop="http://www.springframework.org/schema/aop"
-    xmlns:tx="http://www.springframework.org/schema/tx"
-    xsi:schemaLocation="http://www.springframework.org/schema/beans
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns:context="http://www.springframework.org/schema/context"
+	   xmlns:aop="http://www.springframework.org/schema/aop"
+	   xmlns:tx="http://www.springframework.org/schema/tx"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans.xsd
         http://www.springframework.org/schema/context
         http://www.springframework.org/schema/context/spring-context.xsd
@@ -12,11 +12,14 @@
         http://www.springframework.org/schema/aop/spring-aop.xsd
         http://www.springframework.org/schema/tx
         http://www.springframework.org/schema/tx/spring-tx.xsd">
+	<!--  spring扫描控制器以外的注解 -->
+	<!--<context:component-scan base-package="com.qfedu">
+            <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"></context:exclude-filter>
+    </context:component-scan>-->
+	<context:component-scan base-package="com.qfedu.service.impl">
+	</context:component-scan>
 
-       <context:component-scan base-package="com.qfedu.service">
-       </context:component-scan>
-     
-     <!-- 1 druid数据源 -->
+	<!-- 1 druid数据源 -->
 	<bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource"
 		  init-method="init" destroy-method="close">
 		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
@@ -37,66 +40,135 @@
 		<!-- 这里建议配置为TRUE，防止取到的连接不可用 -->
 		<property name="testOnBorrow" value="true" />
 		<property name="testOnReturn" value="false" />
-		
+
 	</bean>
-	
+
 	<!-- 2 创建Mybatis的工厂对象 -->
 	<bean id="sqlSessionFactory"
-		class="org.mybatis.spring.SqlSessionFactoryBean">
+		  class="org.mybatis.spring.SqlSessionFactoryBean">
 		<!--设置数据库连接池 -->
 		<property name="dataSource" ref="dataSource"></property>
-		
+
 		<!-- 加载mybatis主配置文件
 			classpath: 表示文件所在的路径
 				如果是普通的java程序，classpath表示bin目录的路径
 				如果是web程序，classpath 表示classes目录的路径
 		 -->
 		<property name="configLocation" value="classpath:mybatis.xml"/>
-		
+
 		<!-- 加载映射文件
 			*.xml 表示所有的xml文件
 		 -->
 		<property name="mapperLocations" value="classpath:com/qfedu/mapping/*.xml"/>
 	</bean>
-	
+
 	<!--3设置Mybatis的映射接口 -->
 	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
 		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
 		<!-- 设置dao所在包 -->
 		<property name="basePackage" value="com.qfedu.dao"></property>
 	</bean>
-	
+
 	<!-- 4配置事务管理类 -->
-   	<bean id="txManage" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
-   		
-   		<property name="dataSource" ref="dataSource"></property>
-   	</bean>
-   
-    <!-- 5配置事务的特性 -->
-   <tx:advice id="txAdvice" transaction-manager="txManage">
-   		<tx:attributes>
-   			<!-- 针对使用事务的add开头的方法 
-   			read-only 是否只读，true 是，false 可读可写
-   			如果有插入等操作，设为为true，运行程序会报异常-->
-   			<tx:method name="add*" read-only="false" propagation="REQUIRED"/>
-   			<tx:method name="delete*" read-only="false"  propagation="REQUIRED"/>
-   			<tx:method name="update*" read-only="false"  propagation="REQUIRED"/>
-   			<tx:method name="find*" read-only="true"  propagation="REQUIRED"/>
-   			<!-- 针对其余的方法 -->
-   			<tx:method name="*" propagation="NOT_SUPPORTED"/>
-   			
-   		</tx:attributes>
-   </tx:advice>
-   
-   <!-- 6 AOP配置 -->
-   <aop:config>
-   		<!-- 切入点 -->
-   		<aop:pointcut expression="execution(* com.qfedu.service.impl.*.*(..))" id="pc"/>
-   
-   		<!-- 通知 -->
-   		<aop:advisor advice-ref="txAdvice" pointcut-ref="pc"/>
-   
-   </aop:config>
-    
-        
+	<bean id="txManage" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+
+	<!-- 5配置事务的特性 -->
+	<tx:advice id="txAdvice" transaction-manager="txManage">
+		<tx:attributes>
+			<!-- 针对使用事务的add开头的方法
+            read-only 是否只读，true 是，false 可读可写
+            如果有插入等操作，设为为true，运行程序会报异常-->
+			<tx:method name="add*" read-only="false" propagation="REQUIRED"/>
+			<tx:method name="delete*" read-only="false"  propagation="REQUIRED"/>
+			<tx:method name="update*" read-only="false"  propagation="REQUIRED"/>
+			<tx:method name="find*" read-only="true"  propagation="REQUIRED"/>
+			<!-- 针对其余的方法 -->
+			<tx:method name="*" propagation="NOT_SUPPORTED"/>
+
+		</tx:attributes>
+	</tx:advice>
+
+	<!-- 6 AOP配置 -->
+	<aop:config>
+		<!-- 切入点 -->
+		<aop:pointcut expression="execution(* com.qfedu.service.impl.*.*(..))" id="pc"/>
+
+		<!-- 通知 -->
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="pc"/>
+
+	</aop:config>
+
+
+	<!-- 自定义Realm -->
+	<bean id="myRealm" class="com.qfedu.realm.MyRealm"/>
+
+	<!-- 安全管理器 -->
+	<bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<property name="realm" ref="myRealm"/>
+	</bean>
+
+
+	<!-- Shiro过滤器 -->
+	<bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+		<!-- Shiro的核心安全接口,这个属性是必须的 -->
+		<property name="securityManager" ref="securityManager"/>
+		<!-- 未登陆时，访问需要认证的资源，则跳转到登录页面的配置 -->
+		<property name="loginUrl" value="/login.html"/>
+		<!-- 权限认证失败，则跳转到指定页面 -->
+		<!--<property name="unauthorizedUrl" value="/unauthorized.jsp"/>-->
+		<!--  设置自定义的filter -->
+		<property name="filters">
+			<map>
+				<!--  注意key的值 -->
+				<entry key="perms" value-ref="myPermFilter" />
+			</map>
+		</property>
+		<!-- Shiro连接约束配置,即过滤链的定义 -->
+		<property name="filterChainDefinitions">
+			<value>
+				<!--  anon 匿名访问 -->
+				/login.do=anon
+				/login.html=anon
+				/media/** = anon
+
+				<!-- 配置退出的操作 -->
+				/logout.do = logout
+
+				<!-- 配置权限 -->
+				<!--/test.do=perms["user:list"]-->
+				<!--/test2.do=perms["user:ddd"]-->
+
+				<!--  authc 经过身份认证后才能访问
+					放在最后，否则权限认证部分的配置失效
+				-->
+				/**=authc
+				<!-- 使用rememberMe功能时，需要使用user过滤器，包含认证和rememberMe功能 -->
+				<!--/**=user-->
+				<!--  /login=anon
+                 /user/admin*=authc
+                 /user/student*/**=roles[teacher]
+                 /user/teacher*/**=perms["user:create"]
+				/user/login.do=anon
+				 user下的所有内容都需要身份认证
+					/user/*=authc
+				-->
+
+			</value>
+		</property>
+	</bean>
+
+	<!-- 手动创建logoutFIleter的对象，主要目的：指定退出后需要跳转的资源
+	 	id 的值可以随便写，但是一般还是写为logout
+	 -->
+	<bean id="logout" class="org.apache.shiro.web.filter.authc.LogoutFilter">
+		<property name="redirectUrl" value="/login.html" />
+	</bean>
+
+	<!--  创建自定义的授权处理的对象 -->
+	<bean id="myPermFilter" class="com.qfedu.realm.MyPermFitler"></bean>
+
+
 </beans>

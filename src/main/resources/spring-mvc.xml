@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <beans xmlns="http://www.springframework.org/schema/beans"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns:context="http://www.springframework.org/schema/context"
-    xmlns:aop="http://www.springframework.org/schema/aop"
-    xmlns:tx="http://www.springframework.org/schema/tx"
-    xmlns:mvc="http://www.springframework.org/schema/mvc"
-    xsi:schemaLocation="http://www.springframework.org/schema/beans
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans.xsd
         http://www.springframework.org/schema/context
         http://www.springframework.org/schema/context/spring-context.xsd
@@ -16,46 +16,55 @@
         http://www.springframework.org/schema/tx/spring-tx.xsd
         http://www.springframework.org/schema/mvc
         http://www.springframework.org/schema/mvc/spring-mvc.xsd">
-     <!-- 使用注解，所以需要进行注解扫描
-     	springmvc的配置，只扫描控制器的注解
-      -->
-	<context:component-scan base-package="com.qfedu.controller">
-	</context:component-scan>
-    
-    
+    <!-- 使用注解，所以需要进行注解扫描
+        springmvc的配置，只扫描控制器的注解
+        使用父包，只扫描控制层的注解
+        use-default-filters="false" 不使用默认的filter扫描控制层、业务层、数据访问层的注解
+     -->
+    <!--<context:component-scan base-package="com.qfedu" use-default-filters="false">
+            <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"></context:include-filter>
+    </context:component-scan>-->
+    <context:component-scan base-package="com.qfedu.controller">
+    </context:component-scan>
+
+
     <!-- 引入验证器 -->
     <mvc:annotation-driven>
-    	<!-- 处理json里的日期数据，默认日期被fastjson转为时间戳数据 -->
-  		<mvc:message-converters>  
-            <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">  
-                <property name="objectMapper">  
-                    <bean class="com.fasterxml.jackson.databind.ObjectMapper">  
-                        <property name="dateFormat">  
-                            <bean class="java.text.SimpleDateFormat">  
+        <!-- 处理json里的日期数据，默认日期被fastjson转为时间戳数据 -->
+        <mvc:message-converters>
+            <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+                <property name="objectMapper">
+                    <bean class="com.fasterxml.jackson.databind.ObjectMapper">
+                        <property name="dateFormat">
+                            <bean class="java.text.SimpleDateFormat">
                                 <constructor-arg type="java.lang.String" value="yyyy-MM-dd HH:mm:ss" />
-                            </bean>  
-                        </property>  
-                    </bean>  
-                </property>  
-            </bean>  
+                            </bean>
+                        </property>
+                    </bean>
+                </property>
+            </bean>
         </mvc:message-converters>
     </mvc:annotation-driven>
-    
+
+
+
     <!-- 将静态资源 交给tomcat默认的servlet进行处理 -->
     <mvc:default-servlet-handler/>
-    
-    
+
+    <!--<mvc:resources mapping="" location=""></mvc:resources>-->
+
     <!-- 1 如果针对控制器中的方法的形参，可以直接使用相关验证的注解，需要增加该配置 -->
     <bean class="org.springframework.validation.beanvalidation.MethodValidationPostProcessor"/>
-    
-     <!-- 视图解析器 -->
-   <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
-   		<!-- 前缀 -->
-   		<property name="prefix" value="/"></property>
-   		<!-- 后缀 -->
-   		<property name="suffix" value=".jsp"></property>
-   
-   </bean>
+
+    <!-- 视图解析器 -->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <!-- 前缀 -->
+        <property name="prefix" value="/"></property>
+        <!-- 后缀 -->
+        <property name="suffix" value=".html"></property>
+
+    </bean>
+
 
     <bean id="multipartResolver"
           class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
@@ -68,4 +77,30 @@
         <!-- 启用是为了推迟文件解析，以便捕获文件大小异常 -->
         <property name="resolveLazily" value="true"/>
     </bean>
+
+
+    <!-- 保证实现了Shiro内部lifecycle函数的bean执行 -->
+    <bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor"/>
+
+    <!-- 生成代理，通过代理进行控制 -->
+    <bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator" depends-on="lifecycleBeanPostProcessor"/>
+    <!-- 开启Shiro注解,必须放在springmvc的配置文件中 -->
+    <bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+        <property name="securityManager" ref="securityManager"/>
+    </bean>
+
+    <!-- 注解方式下的异常处理，身份认证异常处理、权限认证异常处理 -->
+    <bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+        <property name="exceptionMappings">
+            <props>
+                <!--登录异常，跳转到login.jsp-->
+                <prop key="org.apache.shiro.authz.UnauthenticatedException">
+                    /login
+                </prop>
+                <!-- 授权异常，跳转到error.html -->
+                <prop key="org.apache.shiro.authz.UnauthorizedException">error</prop>
+            </props>
+        </property>
+    </bean>
+
 </beans>
